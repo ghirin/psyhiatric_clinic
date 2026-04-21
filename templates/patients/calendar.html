@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+{% load patient_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Календарь поступлений и выписок" %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'patients:patient_list' %}">{% trans "Пациенты" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Календарь" %}</li>
+{% endblock %}
+
+{% block page_title %}
+<i class="bi bi-calendar3 me-2"></i>{% trans "Календарь поступлений и выписок" %}
+{% endblock %}
+
+{% block content %}
+<!-- Статистика за месяц -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h3 class="card-title text-success">{{ month_stats.total_admissions|default:0 }}</h3>
+                <p class="card-text">{% trans "Поступлений в этом месяце" %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <h3 class="card-title text-warning">{{ month_stats.total_discharges|default:0 }}</h3>
+                <p class="card-text">{% trans "Выписок в этом месяце" %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <h3 class="card-title text-primary">{{ month_stats.hospitalized_at_end|default:0 }}</h3>
+                <p class="card-text">{% trans "Госпитализировано на конец месяца" %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Навигация по месяцам -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-outline-primary">
+                <i class="bi bi-chevron-left"></i> {% trans "Предыдущий" %}
+            </a>
+            
+            <h3 class="mb-0">{{ month_name }} {{ year }}</h3>
+            
+            <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-outline-primary">
+                {% trans "Следующий" %} <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Календарь -->
+<div class="card">
+    <div class="card-body">
+        <div class="calendar-container">
+            <div class="row calendar-header">
+                <div class="col text-center fw-bold py-2 bg-light">Пн</div>
+                <div class="col text-center fw-bold py-2 bg-light">Вт</div>
+                <div class="col text-center fw-bold py-2 bg-light">Ср</div>
+                <div class="col text-center fw-bold py-2 bg-light">Чт</div>
+                <div class="col text-center fw-bold py-2 bg-light">Пт</div>
+                <div class="col text-center fw-bold py-2 bg-light text-primary">Сб</div>
+                <div class="col text-center fw-bold py-2 bg-light text-danger">Вс</div>
+            </div>
+            
+            {% for week in calendar_weeks %}
+            <div class="row calendar-week">
+                {% for day_data in week %}
+                <div class="col calendar-day {% if day_data.is_today %}today{% endif %} {% if not day_data.day %}empty{% endif %}">
+                    {% if day_data.day %}
+                    <div class="day-number">{{ day_data.day }}</div>
+                    
+                    {% if events_by_day|get_item:day_data.day %}
+                    <div class="day-events">
+                        {% for event in events_by_day|get_item:day_data.day %}
+                        <div class="event event-{{ event.type }} event-{{ event.color }} mb-1">
+                            <a href="{% url 'patients:patient_detail' event.patient.pk %}" 
+                               class="text-decoration-none small text-{{ event.color }}"
+                               title="{{ event.title }}">
+                                <i class="bi {{ event.icon }}"></i>
+                                {{ event.patient.last_name|slice:":1" }}. {{ event.patient.first_name|slice:":1" }}.
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Легенда -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="d-flex gap-4 justify-content-center">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-2"><i class="bi bi-arrow-down-circle"></i></span>
+                <small>Поступление</small>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-warning text-dark me-2"><i class="bi bi-arrow-up-circle"></i></span>
+                <small>Выписка</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.calendar-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.calendar-header {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.calendar-week {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.calendar-week:last-child {
+    border-bottom: none;
+}
+
+.calendar-day {
+    min-height: 100px;
+    padding: 5px;
+    border-right: 1px solid #dee2e6;
+}
+
+.calendar-day:last-child {
+    border-right: none;
+}
+
+.calendar-day.empty {
+    background-color: #f8f9fa;
+}
+
+.calendar-day.today {
+    background-color: #e7f1ff;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.event {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.event-success {
+    background-color: #d1e7dd;
+    color: #0a3622;
+}
+
+.event-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Функция для получения элемента из словаря в шаблоне
+function getItem(obj, key) {
+    return obj[key];
+}
+</script>
+{% endblock %}

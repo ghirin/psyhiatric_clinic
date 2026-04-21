@@ -1,0 +1,315 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'ru' }}" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% trans "Психиатрическая больница - Учет пациентов" %}{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js"></script>
+    
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}
+<style>
+kbd {
+    padding: 0.15em 0.4em;
+    font-size: 0.75em;
+    font-family: inherit;
+    border-radius: 0.25rem;
+    border: 1px solid #adb5bd;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1);
+}
+
+.navbar-nav kbd {
+    padding: 0.1em 0.35em;
+    font-size: 0.65em;
+    vertical-align: middle;
+}
+
+.list-group-item kbd {
+    margin-left: 0.5em;
+}
+
+/* Анимация для уведомлений */
+.alert {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Стили для загрузки файлов */
+.file-upload-wrapper {
+    position: relative;
+}
+
+.file-upload-wrapper input[type="file"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Стили для timeline */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -26px;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #6c757d;
+}
+
+.timeline-marker.bg-success { background: #198754; }
+.timeline-marker.bg-primary { background: #0d6efd; }
+.timeline-marker.bg-warning { background: #ffc107; }
+.timeline-marker.bg-danger { background: #dc3545; }
+</style>
+{% endblock %}
+</head>
+<body>
+    <!-- DEBUG LANGUAGE INFO -->
+    <div style="background: #ffeeba; color: #856404; padding: 8px; font-size: 14px;">
+        <b>DEBUG:</b> Текущий язык: {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }} |
+        Кука django_language: {{ request.COOKIES.django_language|default:'-' }} |
+        Доступные языки: {% get_available_languages as LANGUAGES %}{% for lang in LANGUAGES %}{{ lang }} {% endfor %}
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'patients:dashboard' %}">
+                <i class="bi bi-hospital me-2"></i>
+                {% blocktrans %}Психиатрическая больница{% endblocktrans %}
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                               href="{% url 'patients:dashboard' %}">
+                                <i class="bi bi-speedometer2 me-1"></i>{% blocktrans %}Дашборд{% endblocktrans %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'quick_actions' %}active{% endif %}" 
+                               href="{% url 'patients:quick_actions' %}">
+                                <i class="bi bi-lightning me-1"></i>{% blocktrans %}Быстрые действия{% endblocktrans %}
+                                <kbd class="ms-1 bg-light text-dark" style="font-size: 0.7em;">N</kbd>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'patient_list' %}active{% endif %}" 
+                               href="{% url 'patients:patient_list' %}">
+                                <i class="bi bi-people me-1"></i>{% blocktrans %}Пациенты{% endblocktrans %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'patient_calendar' %}active{% endif %}" 
+                               href="{% url 'patients:patient_calendar' %}">
+                                <i class="bi bi-calendar3 me-1"></i>{% blocktrans %}Календарь{% endblocktrans %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'patient_export' %}active{% endif %}" 
+                               href="{% url 'patients:patient_export' %}">
+                                <i class="bi bi-download me-1"></i>{% blocktrans %}Экспорт{% endblocktrans %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-hotkey-search>
+                                <i class="bi bi-search me-1"></i>{% blocktrans %}Поиск{% endblocktrans %}
+                                <kbd class="ms-1 bg-light text-dark" style="font-size: 0.7em;">S</kbd>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-1"></i>{{ user.get_full_name|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+                                    <i class="bi bi-gear me-2"></i>{% blocktrans %}Админ-панель{% endblocktrans %}
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'users:logout' %}">
+                                    <i class="bi bi-box-arrow-right me-2"></i>{% blocktrans %}Выход{% endblocktrans %}
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:login' %}">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>{% blocktrans %}Вход{% endblocktrans %}
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-dismissible alert-{{ message.tags }} fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Модальное окно быстрого поиска -->
+        <div class="modal fade" id="quickSearchModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-search me-2"></i>{% trans "Быстрый поиск пациента" %}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="quickSearchInput" class="form-control form-control-lg" 
+                               placeholder="{% trans 'Введите ФИО, ИБ № или телефон...' %}" autocomplete="off">
+                        <div id="quickSearchResults" class="mt-3" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>{% trans "Нажмите ESC для закрытия" %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                {% block breadcrumb %}
+                <nav aria-label="breadcrumb" class="mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'patients:dashboard' %}">{% trans "Главная" %}</a></li>
+                        {% block breadcrumb_items %}{% endblock %}
+                    </ol>
+                </nav>
+                {% endblock %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title mb-0">
+                            {% block page_title %}{% endblock %}
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light border-top">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <span class="text-muted">
+                        &copy; {% now "Y" %} {% trans "Психиатрическая больница." %}
+                    </span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted">
+                        {% trans "Версия:" %} 2.2.0 | {% trans "Пользователь:" %} {{ user.get_full_name|default:user.username }}
+                                                    <!-- Language Switcher -->
+                                                    <ul class="navbar-nav ms-3">
+                                                        <li class="nav-item dropdown">
+                                                            <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                {% get_current_language as LANGUAGE_CODE %}
+                                                                {% get_available_languages as LANGUAGES %}
+                                                                {% get_language_info_list for LANGUAGES as languages %}
+                                                                <i class="bi bi-translate me-1"></i>{% for lang in languages %}{% if lang.code == LANGUAGE_CODE %}{{ lang.name_local }}{% endif %}{% endfor %}
+                                                            </a>
+                                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="langDropdown">
+                                                                {% for lang in languages %}
+                                                                    <li>
+                                                                        <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                                                                            {% csrf_token %}
+                                                                            <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                                                                            <input name="language" type="hidden" value="{{ lang.code }}">
+                                                                            <button type="submit" class="dropdown-item{% if lang.code == LANGUAGE_CODE %} active{% endif %}">
+                                                                                {{ lang.name_local }}
+                                                                            </button>
+                                                                        </form>
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="{% static 'css/main.js' %}"></script>
+    <script src="{% static 'js/hotkeys.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

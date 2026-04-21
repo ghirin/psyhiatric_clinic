@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Быстрые действия" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% trans "Быстрые действия" %}</h2>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">{% trans "Статистика" %}</div>
+                <div class="card-body">
+                    <p>{% trans "Госпитализировано сегодня:" %} <b>{{ stats.hospitalized_today }}</b></p>
+                    <p>{% trans "Выписано сегодня:" %} <b>{{ stats.discharged_today }}</b></p>
+                    <p>{% trans "Всего госпитализировано:" %} <b>{{ stats.total_hospitalized }}</b></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">{% trans "Последние пациенты" %}</div>
+                <ul class="list-group list-group-flush">
+                    {% for patient in recent_patients %}
+                    <li class="list-group-item">
+                        <a href="{% url 'patients:patient_detail' patient.pk %}">{{ patient.full_name }}</a>
+                        <span class="badge bg-secondary ms-2">{% trans "ИБ:" %} {{ patient.case_number }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">{% trans "Нет данных" %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">{% trans "Горячие клавиши" %}</div>
+        <div class="card-body">
+            <ul class="list-inline">
+                {% for hotkey in hotkeys %}
+                <li class="list-inline-item me-4">
+                    <kbd>{{ hotkey.key }}</kbd> — {{ hotkey.action }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
